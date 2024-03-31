@@ -1,0 +1,96 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+model User {
+  id            String    @id @default(cuid())
+  firstName     String?
+  lastName      String?
+  email         String    @unique
+  emailVerified DateTime?
+  password      String
+  refreshToken  String?   @unique
+  role          UserRole  @default(USER)
+
+  teamMembers TeamMember[]
+}
+
+model VerificationToken {
+  id      String   @id @default(cuid())
+  email   String
+  token   String   @unique
+  expires DateTime
+
+  @@unique([email, token])
+}
+
+model PasswordResetToken {
+  id      String   @id @default(cuid())
+  email   String
+  token   String   @unique
+  expires DateTime
+
+  @@unique([email, token])
+}
+
+model Team {
+  id             String         @id @default(cuid())
+  name           String
+  slug           String
+  teamMembers    TeamMember[]
+  projects       Project[]
+  sharedProjects ProjectShare[]
+}
+
+enum TeamMemberRole {
+  OWNER
+  ADMIN
+  READ_ONLY
+}
+
+model TeamMember {
+  id             String           @id @default(cuid())
+  team           Team             @relation(fields: [teamId], references: [id])
+  teamId         String
+  user           User             @relation(fields: [userId], references: [id])
+  userId         String
+  role           TeamMemberRole
+  projectMembers ProjectMembers[]
+}
+
+model Project {
+  id   String @id @default(cuid())
+  name String
+  slug String
+
+  team    Team             @relation(fields: [teamId], references: [id])
+  teamId  String
+  shares  ProjectShare[]
+  members ProjectMembers[]
+}
+
+model ProjectMembers {
+  id           String     @id @default(cuid())
+  project      Project    @relation(fields: [projectId], references: [id])
+  teamMember   TeamMember @relation(fields: [teamMemberId], references: [id])
+  projectId    String
+  teamMemberId String
+}
+
+model ProjectShare {
+  id        String  @id @default(cuid())
+  project   Project @relation(fields: [projectId], references: [id])
+  projectId String
+  team      Team    @relation(fields: [teamId], references: [id])
+  teamId    String
+}
